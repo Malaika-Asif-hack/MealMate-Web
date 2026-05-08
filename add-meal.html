@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Add Meal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🍽️</span>
+                <h2>MealMate</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="add-meal.html" class="nav-link active">➕ Add Meal</a>
+                <a href="diary.html" class="nav-link">📔 Meal Diary</a>
+                <a href="weekly-report.html" class="nav-link">📈 Reports</a>
+                <a href="profile.html" class="nav-link">👤 Profile</a>
+                <a href="settings.html" class="nav-link">⚙️ Settings</a>
+                <a href="#" onclick="logout()" class="nav-link logout-link">🚪 Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>➕ Add New Meal</h1>
+                <p>Record what you ate</p>
+            </div>
+
+            <div class="add-meal-card">
+                <form id="addMealForm">
+                    <div class="input-group">
+                        <label>Date</label>
+                        <input type="date" id="mealDate" class="input-field" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Meal Type</label>
+                        <select id="mealType" class="input-field" required>
+                            <option value="breakfast">🍳 Breakfast</option>
+                            <option value="lunch">🥗 Lunch</option>
+                            <option value="dinner">🍲 Dinner</option>
+                            <option value="snack">🍎 Snack</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Food Name</label>
+                        <input type="text" id="foodName" class="input-field" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Calories</label>
+                        <input type="number" id="calories" class="input-field" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Meal</button>
+                        <button type="button" class="btn-secondary" onclick="window.location.href='dashboard.html'">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        function getToday() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+
+        document.getElementById('mealDate').value = getToday();
+
+        document.getElementById('addMealForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if(!user) { alert('Please login'); return; }
+
+            const meal = {
+                userId: user.uid,
+                date: document.getElementById('mealDate').value,
+                mealType: document.getElementById('mealType').value,
+                foodName: document.getElementById('foodName').value,
+                calories: parseInt(document.getElementById('calories').value),
+                createdAt: new Date()
+            };
+
+            try {
+                await db.collection('meals').add(meal);
+                alert('Meal added!');
+                window.location.href = 'dashboard.html';
+            } catch(e) { alert('Error: ' + e.message); }
+        });
+// After successfully adding meal
+if (window.clearMealCache) window.clearMealCache();
+
+        window.logout = function() { auth.signOut(); window.location.href = 'login.html'; };
+
+        auth.onAuthStateChanged(user => { if(!user) window.location.href = 'login.html'; });
+    </script>
+</body>
+</html>

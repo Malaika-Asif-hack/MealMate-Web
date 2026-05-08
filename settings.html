@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🍽️</span>
+                <h2>MealMate</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="add-meal.html" class="nav-link">➕ Add Meal</a>
+                <a href="diary.html" class="nav-link">📔 Meal Diary</a>
+                <a href="weekly-report.html" class="nav-link">📈 Reports</a>
+                <a href="profile.html" class="nav-link">👤 Profile</a>
+                <a href="settings.html" class="nav-link active">⚙️ Settings</a>
+                <a href="#" onclick="logout()" class="nav-link logout-link">🚪 Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>⚙️ Settings</h1>
+                <p>Manage your app preferences</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h3>Change Password</h3>
+                    <form id="passwordForm">
+                        <div class="input-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPassword" class="input-field" required>
+                        </div>
+                        <div class="input-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" class="input-field" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPassword" class="input-field" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Password</button>
+                    </form>
+                </div>
+
+                <div class="settings-section">
+                    <h3>App Preferences</h3>
+                    <div class="preference-item">
+                        <label>Theme</label>
+                        <select id="themeSelect" class="input-field">
+                            <option value="light">Light Mode</option>
+                            <option value="dark">Dark Mode</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Data Management</h3>
+                    <button onclick="exportData()" class="btn-secondary">📥 Export My Data</button>
+                    <button onclick="clearAllData()" class="btn-danger" style="margin-left: 10px;">🗑️ Delete All Data</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        const passwordForm = document.getElementById('passwordForm');
+        
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match!');
+                return;
+            }
+
+            const user = auth.currentUser;
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+            
+            try {
+                await user.reauthenticateWithCredential(credential);
+                await user.updatePassword(newPassword);
+                alert('Password updated successfully!');
+                passwordForm.reset();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        async function exportData() {
+            const user = auth.currentUser;
+            const mealsSnapshot = await db.collection('meals').where('userId', '==', user.uid).get();
+            const meals = [];
+            mealsSnapshot.forEach(doc => meals.push(doc.data()));
+            
+            const dataStr = JSON.stringify(meals, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mealmate-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function clearAllData() {
+            if (confirm('WARNING: This will delete ALL your meal data. This cannot be undone. Continue?')) {
+                const user = auth.currentUser;
+                const mealsSnapshot = await db.collection('meals').where('userId', '==', user.uid).get();
+                mealsSnapshot.forEach(async (doc) => {
+                    await db.collection('meals').doc(doc.id).delete();
+                });
+                alert('All data deleted successfully!');
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // Theme preference
+        const themeSelect = document.getElementById('themeSelect');
+        themeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'dark') {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+            localStorage.setItem('theme', e.target.value);
+        });
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            themeSelect.value = 'dark';
+        }
+    </script>
+</body>
+</html>

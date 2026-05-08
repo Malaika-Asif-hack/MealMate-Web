@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Your AI-Powered Diet Companion</title>
+    <meta name="description" content="MealMate uses AI to identify food from photos and track your daily nutrition. Snap. Track. Thrive.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #F5F7FA;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background decorative icons */
+        .bg-icon {
+            position: absolute;
+            opacity: 0.05;
+            color: #4CAF50;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .bg-icon-1 { font-size: 140px; top: 8%; left: 6%; }
+        .bg-icon-2 { font-size: 160px; top: 20%; right: 8%; }
+        .bg-icon-3 { font-size: 120px; bottom: 18%; left: 12%; }
+        .bg-icon-4 { font-size: 180px; bottom: 10%; right: 10%; }
+        .bg-icon-5 { font-size: 100px; top: 45%; left: 45%; }
+
+        /* Main container */
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Card */
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 640px;
+            background: white;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid #E0E0E0;
+            padding: 64px 48px;
+            box-shadow: 0 10px 40px rgba(44, 62, 80, 0.06);
+        }
+
+        .logo {
+            font-size: 80px;
+            line-height: 1;
+        }
+
+        .app-name {
+            color: #4CAF50;
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-top: 16px;
+        }
+
+        .tagline {
+            color: #7F8C8D;
+            font-size: 18px;
+            margin-top: 16px;
+        }
+
+        .description {
+            color: #7F8C8D;
+            font-size: 14px;
+            max-width: 500px;
+            margin: 24px auto 0;
+            line-height: 1.6;
+        }
+
+        .btn-primary {
+            margin-top: 32px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 14px 40px;
+            border-radius: 40px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: background-color 200ms ease, transform 200ms ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #2E7D32;
+            transform: scale(1.02);
+        }
+
+        .login-text {
+            color: #7F8C8D;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .login-link {
+            color: #4CAF50;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .login-link:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #7F8C8D;
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card {
+                padding: 40px 24px;
+            }
+            .app-name {
+                font-size: 36px;
+            }
+            .logo {
+                font-size: 60px;
+            }
+            .btn-primary {
+                padding: 12px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background decorative icons -->
+    <div class="bg-icon bg-icon-1">🍽️</div>
+    <div class="bg-icon bg-icon-2">🥗</div>
+    <div class="bg-icon bg-icon-3">🍎</div>
+    <div class="bg-icon bg-icon-4">🍽️</div>
+    <div class="bg-icon bg-icon-5">🥗</div>
+
+    <div class="container">
+        <div class="card">
+            <div class="logo">🍽️</div>
+            <h1 class="app-name">MealMate</h1>
+            <p class="tagline">Snap. Track. Thrive.</p>
+            <p class="description">
+                Your AI-Powered Diet Companion | Identify food from photos and track your daily nutrition
+            </p>
+            <button class="btn-primary" onclick="window.location.href='login.html'">
+                Get Started
+            </button>
+            <p class="login-text">
+                Already have an account? <a href="login.html" class="login-link">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2026 MealMate | All rights reserved
+    </footer>
+</body>
+</html>

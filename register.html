@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Sign Up</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="card auth-card">
+            <div class="logo-small">🍽️</div>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-subtitle">Start tracking your nutrition today</p>
+
+            <form id="registerForm">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" class="input-field" placeholder="John Doe" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="regEmail" class="input-field" placeholder="you@example.com" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" class="input-field" placeholder="Create a password" required>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group half">
+                        <label>Age</label>
+                        <input type="number" id="regAge" class="input-field" placeholder="25">
+                    </div>
+                    <div class="input-group half">
+                        <label>Weight (kg)</label>
+                        <input type="number" id="regWeight" class="input-field" placeholder="70">
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group half">
+                        <label>Height (cm)</label>
+                        <input type="number" id="regHeight" class="input-field" placeholder="170">
+                    </div>
+                    <div class="input-group half">
+                        <label>Daily Calorie Goal</label>
+                        <input type="number" id="regGoal" class="input-field" placeholder="2000" value="2000">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full">Sign Up</button>
+            </form>
+
+            <p class="auth-footer">
+                Already have an account? <a href="login.html" class="login-link">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2026 MealMate | All rights reserved
+    </footer>
+
+    <!-- Firebase SDKs - ORDER MATTERS! -->
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Your Firebase config MUST come AFTER the SDKs -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Wait for Firebase to load before running this code
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('registerForm');
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Check if auth is available
+                if (typeof auth === 'undefined') {
+                    alert('Firebase is still loading. Please wait a moment and try again.');
+                    console.log('Auth not defined - Firebase may still be loading');
+                    return;
+                }
+                
+                const name = document.getElementById('regName').value;
+                const email = document.getElementById('regEmail').value;
+                const password = document.getElementById('regPassword').value;
+                const age = document.getElementById('regAge').value;
+                const weight = document.getElementById('regWeight').value;
+                const height = document.getElementById('regHeight').value;
+                const calorieGoal = parseInt(document.getElementById('regGoal').value);
+
+                try {
+                    console.log('Creating user...');
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    const user = userCredential.user;
+                    console.log('User created:', user.uid);
+
+                    console.log('Saving user data...');
+                    await db.collection('users').doc(user.uid).set({
+                        name: name,
+                        email: email,
+                        age: age || null,
+                        weight: weight || null,
+                        height: height || null,
+                        calorieGoal: calorieGoal,
+                        createdAt: new Date()
+                    });
+                    console.log('User data saved');
+
+                    alert('Registration successful! Redirecting to dashboard...');
+                    window.location.href = 'dashboard.html';
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    alert('Registration failed: ' + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

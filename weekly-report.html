@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Weekly Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #F5F7FA;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid #E0E0E0;
+            padding: 24px 20px;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #E0E0E0;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-logo { font-size: 32px; }
+        .sidebar-header h2 { color: #4CAF50; font-size: 24px; }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: #2C3E50;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 200ms ease;
+        }
+
+        .nav-link:hover { background: #E8F5E9; color: #4CAF50; }
+        .nav-link.active { background: #4CAF50; color: white; }
+        .logout-link { color: #F44336; margin-top: 20px; cursor: pointer; }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 32px 40px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+        .page-header h1 { color: #2C3E50; font-size: 28px; margin-bottom: 8px; }
+        .page-header p { color: #7F8C8D; font-size: 14px; }
+
+        .report-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid #E0E0E0;
+        }
+
+        .report-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .week-range {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2C3E50;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #4CAF50;
+            padding: 10px 24px;
+            border: 2px solid #4CAF50;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            height: 400px;
+            position: relative;
+            margin-bottom: 32px;
+        }
+
+        .weekly-summary {
+            margin-top: 24px;
+        }
+        .summary-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .summary-stat {
+            background: #E8F5E9;
+            padding: 16px 24px;
+            border-radius: 16px;
+            text-align: center;
+            flex: 1;
+        }
+        .summary-stat .stat-label {
+            font-size: 12px;
+            color: #7F8C8D;
+            display: block;
+        }
+        .summary-stat .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4CAF50;
+            display: block;
+        }
+
+        .loader {
+            text-align: center;
+            padding: 40px;
+            color: #7F8C8D;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; padding: 20px; }
+            .chart-container { height: 250px; }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🍽️</span>
+                <h2>MealMate</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="add-meal.html" class="nav-link">➕ Add Meal</a>
+                <a href="diary.html" class="nav-link">📔 Meal Diary</a>
+                <a href="weekly-report.html" class="nav-link active">📈 Reports</a>
+                <a href="profile.html" class="nav-link">👤 Profile</a>
+                <a href="settings.html" class="nav-link">⚙️ Settings</a>
+                <a href="#" class="nav-link logout-link" onclick="logout()">🚪 Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>📈 Weekly Nutrition Report</h1>
+                <p>Track your calorie intake trends</p>
+            </div>
+
+            <div class="report-card">
+                <div class="report-controls">
+                    <button onclick="changeWeek(-1)" class="btn-secondary">← Previous Week</button>
+                    <span id="weekRange" class="week-range">Loading...</span>
+                    <button onclick="changeWeek(1)" class="btn-secondary">Next Week →</button>
+                    <button onclick="loadCurrentWeek()" class="btn-primary">This Week</button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+
+                <div id="weeklySummary" class="weekly-summary">
+                    <div class="loader">Loading report...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPUEDslDEvjKXuGrBS_YdBCrJpCpZcLPU",
+            authDomain: "mealmate-e2b00.firebaseapp.com",
+            projectId: "mealmate-e2b00",
+            storageBucket: "mealmate-e2b00.firebasestorage.app",
+            messagingSenderId: "206966216973",
+            appId: "1:206966216973:web:0bed3f2924d71278e4b844"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let weeklyChart = null;
+        let currentOffset = 0;
+        let cachedMeals = null; // Cache meals for faster loading
+        let lastCacheDate = null;
+
+        // Get week dates
+        function getWeekDates(offset) {
+            const today = new Date();
+            const currentDay = today.getDay();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - currentDay + 1 + (offset * 7));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            
+            return { 
+                start: formatDate(monday), 
+                end: formatDate(sunday), 
+                monday, 
+                sunday 
+            };
+        }
+
+        // Get all user meals (cached)
+        async function getAllMeals() {
+            const user = auth.currentUser;
+            if (!user) return [];
+            
+            // Check cache (valid for 5 minutes)
+            const now = new Date();
+            if (cachedMeals && lastCacheDate && (now - lastCacheDate) < 300000) {
+                return cachedMeals;
+            }
+            
+            try {
+                const snapshot = await db.collection('meals')
+                    .where('userId', '==', user.uid)
+                    .get();
+                
+                cachedMeals = [];
+                snapshot.forEach(doc => {
+                    cachedMeals.push({ id: doc.id, ...doc.data() });
+                });
+                lastCacheDate = now;
+                
+                return cachedMeals;
+            } catch (error) {
+                console.error('Error:', error);
+                return [];
+            }
+        }
+
+        // Load weekly report (optimized)
+        async function loadWeeklyReport() {
+            const user = auth.currentUser;
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const { start, end, monday, sunday } = getWeekDates(currentOffset);
+            document.getElementById('weekRange').textContent = `${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}`;
+            
+            // Show loading state
+            document.getElementById('weeklySummary').innerHTML = '<div class="loader">Loading chart...</div>';
+            
+            // Get all meals at once (cached)
+            const allMeals = await getAllMeals();
+            
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const caloriesData = [];
+            const dates = [];
+            
+            // Calculate calories for each day of the week
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                dates.push(dateStr);
+                
+                // Sum calories for this date from cached meals
+                let totalCalories = 0;
+                allMeals.forEach(meal => {
+                    if (meal.date === dateStr) {
+                        totalCalories += meal.calories;
+                    }
+                });
+                caloriesData.push(totalCalories);
+            }
+            
+            // Update chart
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            if (weeklyChart) weeklyChart.destroy();
+            
+            weeklyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Calories Consumed',
+                        data: caloriesData,
+                        backgroundColor: '#4CAF50',
+                        borderRadius: 8,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.raw} calories` } }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Calories' },
+                            grid: { color: '#E0E0E0' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+            
+            // Update summary stats
+            const total = caloriesData.reduce((a, b) => a + b, 0);
+            const avg = Math.round(total / 7);
+            const max = Math.max(...caloriesData);
+            const validDays = caloriesData.filter(c => c > 0);
+            const min = validDays.length > 0 ? Math.min(...validDays) : 0;
+            
+            document.getElementById('weeklySummary').innerHTML = `
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <span class="stat-label">Total Weekly Calories</span>
+                        <span class="stat-value">${total.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Daily Average</span>
+                        <span class="stat-value">${avg.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Highest Day</span>
+                        <span class="stat-value">${max.toLocaleString()}</span>
+                    </div>
+                    ${min > 0 ? `<div class="summary-stat">
+                        <span class="stat-label">Lowest Day</span>
+                        <span class="stat-value">${min.toLocaleString()}</span>
+                    </div>` : ''}
+                </div>
+            `;
+        }
+
+        function changeWeek(delta) {
+            currentOffset += delta;
+            loadWeeklyReport();
+        }
+        
+        function loadCurrentWeek() {
+            currentOffset = 0;
+            loadWeeklyReport();
+        }
+
+        function logout() {
+            auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        // Clear cache when user adds/edits/deletes a meal (call this from other pages)
+        window.clearMealCache = function() {
+            cachedMeals = null;
+            lastCacheDate = null;
+        };
+
+        // Check auth on page load
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadWeeklyReport();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html>

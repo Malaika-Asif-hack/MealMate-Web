@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealMate – Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo">🍽️</span>
+                <h2>MealMate</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link active">📊 Dashboard</a>
+                <a href="add-meal.html" class="nav-link">➕ Add Meal</a>
+                <a href="diary.html" class="nav-link">📔 Meal Diary</a>
+                <a href="weekly-report.html" class="nav-link">📈 Reports</a>
+                <a href="profile.html" class="nav-link">👤 Profile</a>
+                <a href="settings.html" class="nav-link">⚙️ Settings</a>
+                <a href="#" onclick="logout()" class="nav-link logout-link">🚪 Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="welcome-header">
+                <h1>Welcome back, <span id="userName">User</span>!</h1>
+                <p id="currentDate"></p>
+            </div>
+
+            <div class="summary-card">
+                <h3>Today's Progress</h3>
+                <div class="calorie-stats">
+                    <div class="calorie-number">
+                        <span id="todayCalories">0</span> / <span id="goalCalories">2000</span> calories
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill" style="width: 0%">0%</div>
+                    </div>
+                    <p id="remainingCalories" class="remaining-text"></p>
+                </div>
+            </div>
+
+            <div class="quick-add-card">
+                <h3>➕ Quick Add Meal</h3>
+                <div class="quick-add-form">
+                    <select id="quickMealType" class="quick-select">
+                        <option value="breakfast">🍳 Breakfast</option>
+                        <option value="lunch">🥗 Lunch</option>
+                        <option value="dinner">🍲 Dinner</option>
+                        <option value="snack">🍎 Snack</option>
+                    </select>
+                    <input type="text" id="quickFoodName" placeholder="Food name" class="quick-input">
+                    <input type="number" id="quickCalories" placeholder="Calories" class="quick-input">
+                    <button onclick="addQuickMeal()" class="btn-primary">Add</button>
+                </div>
+            </div>
+
+            <div class="meals-card">
+                <h3>📔 Today's Meals</h3>
+                <div class="filter-bar">
+                    <input type="date" id="dateFilter" class="date-filter">
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Meal Type</th><th>Food</th><th>Calories</th><th>Actions</th></tr></thead>
+                        <tbody id="mealsList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        // Get today's date in YYYY-MM-DD
+        function getTodayDate() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+
+        // Meal icon
+        function getIcon(type) {
+            const icons = {breakfast:'🍳',lunch:'🥗',dinner:'🍲',snack:'🍎'};
+            return icons[type] || '🍽️';
+        }
+
+        // Add meal
+        window.addQuickMeal = async function() {
+            const user = auth.currentUser;
+            if (!user) { alert('Please login'); return; }
+            
+            const mealType = document.getElementById('quickMealType').value;
+            const foodName = document.getElementById('quickFoodName').value;
+            const calories = parseInt(document.getElementById('quickCalories').value);
+            
+            if (!foodName || !calories) { alert('Fill all fields'); return; }
+            
+            try {
+                await db.collection('meals').add({
+                    userId: user.uid,
+                    date: getTodayDate(),
+                    mealType: mealType,
+                    foodName: foodName,
+                    calories: calories,
+                    createdAt: new Date()
+                });
+                document.getElementById('quickFoodName').value = '';
+                document.getElementById('quickCalories').value = '';
+                loadMeals();
+                loadSummary();
+                alert('Meal added!');
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+// After successfully adding meal
+if (window.clearMealCache) window.clearMealCache();
+
+        // Load meals
+        async function loadMeals() {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const date = document.getElementById('dateFilter').value || getTodayDate();
+            const tbody = document.getElementById('mealsList');
+            tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+            
+            try {
+                const snap = await db.collection('meals')
+                    .where('userId', '==', user.uid)
+                    .where('date', '==', date)
+                    .get();
+                
+                if (snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="4">No meals</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                snap.forEach(doc => {
+                    const m = doc.data();
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = getIcon(m.mealType) + ' ' + m.mealType;
+                    row.insertCell(1).textContent = m.foodName;
+                    row.insertCell(2).textContent = m.calories;
+                    row.insertCell(3).innerHTML = `<button class="edit-btn" onclick='editMeal("${doc.id}","${m.foodName}",${m.calories},"${m.mealType}")'>Edit</button>
+                                                    <button class="delete-btn" onclick='deleteMeal("${doc.id}")'>Delete</button>`;
+                });
+            } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Error</td></tr>'; }
+        }
+
+        // Load summary
+        async function loadSummary() {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const today = getTodayDate();
+            try {
+                const meals = await db.collection('meals').where('userId','==',user.uid).where('date','==',today).get();
+                let total = 0;
+                meals.forEach(d => total += d.data().calories);
+                
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                const goal = userDoc.exists ? userDoc.data().calorieGoal : 2000;
+                
+                document.getElementById('todayCalories').textContent = total;
+                document.getElementById('goalCalories').textContent = goal;
+                
+                const percent = Math.min((total/goal)*100, 100);
+                const fill = document.getElementById('progressFill');
+                fill.style.width = percent + '%';
+                fill.textContent = Math.round(percent) + '%';
+                
+                const remain = goal - total;
+                document.getElementById('remainingCalories').innerHTML = remain > 0 ? remain + ' calories left' : '⚠️ Exceeded by ' + Math.abs(remain);
+            } catch(e) { console.error(e); }
+        }
+
+        // Delete meal
+        window.deleteMeal = async function(id) {
+            if(confirm('Delete?')) {
+                await db.collection('meals').doc(id).delete();
+                loadMeals();
+                loadSummary();
+            }
+        };
+
+        // Edit meal
+        window.editMeal = async function(id, name, cal, type) {
+            const newName = prompt('Food name:', name);
+            if(newName) {
+                const newCal = prompt('Calories:', cal);
+                const newType = prompt('Type (breakfast/lunch/dinner/snack):', type);
+                await db.collection('meals').doc(id).update({
+                    foodName: newName,
+                    calories: parseInt(newCal),
+                    mealType: newType.toLowerCase()
+                });
+                loadMeals();
+                loadSummary();
+            }
+        };
+
+        // Load user name
+        async function loadUser() {
+            const user = auth.currentUser;
+            if(!user) return;
+            const doc = await db.collection('users').doc(user.uid).get();
+            if(doc.exists) document.getElementById('userName').textContent = doc.data().name;
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
+        }
+
+        // Logout
+        window.logout = function() { auth.signOut(); window.location.href = 'login.html'; };
+
+        // Set date filter
+        document.getElementById('dateFilter').value = getTodayDate();
+        document.getElementById('dateFilter').addEventListener('change', () => loadMeals());
+
+        // Auth check
+        auth.onAuthStateChanged(user => {
+            if(user) { loadUser(); loadMeals(); loadSummary(); }
+            else window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>
