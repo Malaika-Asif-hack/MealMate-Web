@@ -25,12 +25,10 @@
         .ai-upload-area { border: 2px dashed #4CAF50; border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 200ms ease; background: #F8F9FA; }
         .ai-upload-area:hover { background: #E8F5E9; border-color: #2E7D32; }
         .ai-upload-area .icon { font-size: 48px; margin-bottom: 12px; }
-        .ai-upload-area p { color: #7F8C8D; margin-bottom: 8px; }
         .ai-upload-area .btn-upload { background: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 600; }
         .ai-result { margin-top: 20px; padding: 16px; background: #E8F5E9; border-radius: 12px; display: none; }
         .ai-result.show { display: block; }
-        .ai-result h4 { color: #2C3E50; margin-bottom: 12px; }
-        .detected-food { background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .detected-food { background: white; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
         .detected-food .food-name { font-weight: bold; color: #2C3E50; }
         .detected-food .food-calories { color: #4CAF50; font-weight: bold; }
         .separator { text-align: center; margin: 20px 0; position: relative; }
@@ -79,7 +77,6 @@
                 <div class="ai-upload-area" id="uploadArea">
                     <div class="icon">📸</div>
                     <p>Click to upload a food image</p>
-                    <p style="font-size: 12px;">Supports: JPG, PNG (Max 5MB)</p>
                     <button type="button" class="btn-upload" id="uploadBtn">Choose Image</button>
                 </div>
                 <input type="file" id="foodImage" accept="image/jpeg,image/png,image/jpg" style="display: none;">
@@ -87,7 +84,7 @@
                 <div id="aiResult" class="ai-result">
                     <h4>🔍 AI Detection Result:</h4>
                     <div id="detectedItems"></div>
-                    <button class="btn-primary" id="useDetectedBtn" style="margin-top: 12px;">✓ Use Detected Meal</button>
+                    <button class="btn-primary" id="useDetectedBtn">✓ Use Detected Meal</button>
                 </div>
             </div>
 
@@ -121,7 +118,7 @@
                         <textarea id="notes" class="input-field" rows="3" placeholder="Any additional notes..."></textarea>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">Save Meal</button>
+                        <button type="button" id="saveMealBtn" class="btn-primary">Save Meal</button>
                         <button type="button" class="btn-secondary" onclick="window.location.href='dashboard.html'">Cancel</button>
                     </div>
                 </form>
@@ -153,16 +150,12 @@
             { keywords: ["rice", "biryani"], name: "Rice Dish", calories: 400 },
             { keywords: ["chicken"], name: "Grilled Chicken", calories: 350 },
             { keywords: ["fish"], name: "Fish", calories: 320 },
-            { keywords: ["soup"], name: "Soup", calories: 180 },
-            { keywords: ["sandwich"], name: "Sandwich", calories: 420 },
             { keywords: ["apple"], name: "Apple", calories: 95 },
             { keywords: ["banana"], name: "Banana", calories: 105 },
-            { keywords: ["orange"], name: "Orange", calories: 62 },
-            { keywords: ["egg"], name: "Egg", calories: 70 },
-            { keywords: ["bread"], name: "Bread", calories: 80 },
-            { keywords: ["coffee"], name: "Coffee", calories: 120 }
+            { keywords: ["egg"], name: "Egg", calories: 70 }
         ];
 
+        // Upload area click handlers
         document.getElementById('uploadArea').addEventListener('click', () => {
             document.getElementById('foodImage').click();
         });
@@ -171,6 +164,7 @@
             document.getElementById('foodImage').click();
         });
 
+        // Handle image selection
         document.getElementById('foodImage').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -184,6 +178,7 @@
             }
         });
 
+        // Mock AI analysis
         async function analyzeImage(file) {
             const aiResult = document.getElementById('aiResult');
             const detectedItems = document.getElementById('detectedItems');
@@ -208,11 +203,12 @@
                 matchedFood = { name: "Home Cooked Meal", calories: 400 };
             }
 
-            detectedMeal = { name: matchedFood.name, calories: matchedFood.calories, confidence: "87%" };
+            detectedMeal = { name: matchedFood.name, calories: matchedFood.calories };
 
-            detectedItems.innerHTML = `<div class="detected-food"><div><div class="food-name">${detectedMeal.name}</div><div style="font-size:12px;">Confidence: ${detectedMeal.confidence}</div></div><div class="food-calories">${detectedMeal.calories} cal</div></div>`;
+            detectedItems.innerHTML = `<div class="detected-food"><div><div class="food-name">${detectedMeal.name}</div></div><div class="food-calories">${detectedMeal.calories} cal</div></div>`;
         }
 
+        // Use detected meal
         document.getElementById('useDetectedBtn').addEventListener('click', function() {
             if (detectedMeal) {
                 document.getElementById('foodName').value = detectedMeal.name;
@@ -221,11 +217,18 @@
             }
         });
 
-        document.getElementById('addMealForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Save meal - FIXED VERSION
+        document.getElementById('saveMealBtn').addEventListener('click', async function() {
+            // Get current user
             const user = auth.currentUser;
-            if (!user) { alert('Please login'); window.location.href = 'login.html'; return; }
+            
+            if (!user) {
+                alert('Please login first');
+                window.location.href = 'login.html';
+                return;
+            }
 
+            // Get form values
             const mealDate = document.getElementById('mealDate').value;
             const mealType = document.getElementById('mealType').value;
             const foodName = document.getElementById('foodName').value;
@@ -233,10 +236,20 @@
             const notes = document.getElementById('notes').value;
             const imageFile = document.getElementById('foodImage').files[0];
 
-            if (!foodName || !calories) { alert('Please fill food name and calories'); return; }
+            // Validate
+            if (!foodName) {
+                alert('Please enter food name');
+                return;
+            }
+            if (!calories || isNaN(calories)) {
+                alert('Please enter valid calories');
+                return;
+            }
 
             try {
                 let imageUrl = null;
+                
+                // Upload image if selected
                 if (imageFile) {
                     const timestamp = new Date().getTime();
                     const imageName = `${user.uid}_${timestamp}_${imageFile.name}`;
@@ -245,23 +258,45 @@
                     imageUrl = await storageRef.getDownloadURL();
                 }
 
+                // Save to Firestore
                 await db.collection('meals').add({
-                    userId: user.uid, date: mealDate, mealType: mealType,
-                    foodName: foodName, calories: calories, notes: notes,
-                    imageUrl: imageUrl, source: detectedMeal ? 'ai-detected' : 'manual',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    userId: user.uid,
+                    date: mealDate,
+                    mealType: mealType,
+                    foodName: foodName,
+                    calories: calories,
+                    notes: notes,
+                    imageUrl: imageUrl,
+                    source: detectedMeal ? 'ai-detected' : 'manual',
+                    createdAt: new Date()
                 });
 
                 alert('✅ Meal added successfully!');
+                
+                // Clear cache in other pages
                 if (window.clearMealCache) window.clearMealCache();
+                
+                // Go to dashboard
                 window.location.href = 'dashboard.html';
+                
             } catch (error) {
-                alert('❌ Error: ' + error.message);
+                console.error('Save error:', error);
+                alert('❌ Error saving meal: ' + error.message);
             }
         });
 
-        window.logout = function() { auth.signOut(); window.location.href = 'login.html'; };
-        auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
+        // Logout function
+        window.logout = function() {
+            auth.signOut();
+            window.location.href = 'login.html';
+        };
+
+        // Check auth
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
     </script>
 </body>
 </html>
