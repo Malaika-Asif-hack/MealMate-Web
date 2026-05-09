@@ -206,28 +206,19 @@
         </main>
     </div>
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Your Firebase config -->
+    <script src="firebase-config.js"></script>
 
     <script>
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCPUEDslDEvjKXuGrBS_YdBCrJpCpZcLPU",
-            authDomain: "mealmate-e2b00.firebaseapp.com",
-            projectId: "mealmate-e2b00",
-            storageBucket: "mealmate-e2b00.firebasestorage.app",
-            messagingSenderId: "206966216973",
-            appId: "1:206966216973:web:0bed3f2924d71278e4b844"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
+        // Global variables
         let weeklyChart = null;
         let currentOffset = 0;
-        let cachedMeals = null; // Cache meals for faster loading
+        let cachedMeals = null;
         let lastCacheDate = null;
 
         // Get week dates
@@ -246,12 +237,7 @@
                 return `${year}-${month}-${day}`;
             };
             
-            return { 
-                start: formatDate(monday), 
-                end: formatDate(sunday), 
-                monday, 
-                sunday 
-            };
+            return { start: formatDate(monday), end: formatDate(sunday), monday, sunday };
         }
 
         // Get all user meals (cached)
@@ -259,23 +245,18 @@
             const user = auth.currentUser;
             if (!user) return [];
             
-            // Check cache (valid for 5 minutes)
             const now = new Date();
             if (cachedMeals && lastCacheDate && (now - lastCacheDate) < 300000) {
                 return cachedMeals;
             }
             
             try {
-                const snapshot = await db.collection('meals')
-                    .where('userId', '==', user.uid)
-                    .get();
-                
+                const snapshot = await db.collection('meals').where('userId', '==', user.uid).get();
                 cachedMeals = [];
                 snapshot.forEach(doc => {
                     cachedMeals.push({ id: doc.id, ...doc.data() });
                 });
                 lastCacheDate = now;
-                
                 return cachedMeals;
             } catch (error) {
                 console.error('Error:', error);
@@ -283,7 +264,7 @@
             }
         }
 
-        // Load weekly report (optimized)
+        // Load weekly report
         async function loadWeeklyReport() {
             const user = auth.currentUser;
             if (!user) {
@@ -291,27 +272,21 @@
                 return;
             }
 
-            const { start, end, monday, sunday } = getWeekDates(currentOffset);
+            const { monday, sunday } = getWeekDates(currentOffset);
             document.getElementById('weekRange').textContent = `${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}`;
             
-            // Show loading state
             document.getElementById('weeklySummary').innerHTML = '<div class="loader">Loading chart...</div>';
             
-            // Get all meals at once (cached)
             const allMeals = await getAllMeals();
             
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             const caloriesData = [];
-            const dates = [];
             
-            // Calculate calories for each day of the week
             for (let i = 0; i < 7; i++) {
                 const date = new Date(monday);
                 date.setDate(monday.getDate() + i);
                 const dateStr = date.toISOString().split('T')[0];
-                dates.push(dateStr);
                 
-                // Sum calories for this date from cached meals
                 let totalCalories = 0;
                 allMeals.forEach(meal => {
                     if (meal.date === dateStr) {
@@ -321,7 +296,6 @@
                 caloriesData.push(totalCalories);
             }
             
-            // Update chart
             const ctx = document.getElementById('weeklyChart').getContext('2d');
             if (weeklyChart) weeklyChart.destroy();
             
@@ -345,17 +319,11 @@
                         tooltip: { callbacks: { label: (ctx) => `${ctx.raw} calories` } }
                     },
                     scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            title: { display: true, text: 'Calories' },
-                            grid: { color: '#E0E0E0' }
-                        },
-                        x: { grid: { display: false } }
+                        y: { beginAtZero: true, title: { display: true, text: 'Calories' } }
                     }
                 }
             });
             
-            // Update summary stats
             const total = caloriesData.reduce((a, b) => a + b, 0);
             const avg = Math.round(total / 7);
             const max = Math.max(...caloriesData);
@@ -399,7 +367,7 @@
             window.location.href = 'login.html';
         }
 
-        // Clear cache when user adds/edits/deletes a meal (call this from other pages)
+        // Clear cache function (called from other pages when meals change)
         window.clearMealCache = function() {
             cachedMeals = null;
             lastCacheDate = null;

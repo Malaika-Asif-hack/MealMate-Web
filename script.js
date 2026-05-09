@@ -37,7 +37,7 @@ async function addQuickMeal() {
             mealType: mealType,
             foodName: foodName,
             calories: calories,
-            timestamp: new Date()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
         document.getElementById('quickFoodName').value = '';

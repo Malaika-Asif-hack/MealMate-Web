@@ -78,68 +78,47 @@
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script>
-        // Get today's date in YYYY-MM-DD
         function getTodayDate() {
             const d = new Date();
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
 
-        // Meal icon
         function getIcon(type) {
             const icons = {breakfast:'🍳',lunch:'🥗',dinner:'🍲',snack:'🍎'};
             return icons[type] || '🍽️';
         }
 
-        // Add meal
         window.addQuickMeal = async function() {
             const user = auth.currentUser;
             if (!user) { alert('Please login'); return; }
-            
             const mealType = document.getElementById('quickMealType').value;
             const foodName = document.getElementById('quickFoodName').value;
             const calories = parseInt(document.getElementById('quickCalories').value);
-            
             if (!foodName || !calories) { alert('Fill all fields'); return; }
-            
             try {
                 await db.collection('meals').add({
-                    userId: user.uid,
-                    date: getTodayDate(),
-                    mealType: mealType,
-                    foodName: foodName,
-                    calories: calories,
-                    createdAt: new Date()
+                    userId: user.uid, date: getTodayDate(), mealType: mealType,
+                    foodName: foodName, calories: calories,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 document.getElementById('quickFoodName').value = '';
                 document.getElementById('quickCalories').value = '';
+                if (window.clearMealCache) window.clearMealCache();
                 loadMeals();
                 loadSummary();
                 alert('Meal added!');
             } catch(e) { alert('Error: ' + e.message); }
         };
-// After successfully adding meal
-if (window.clearMealCache) window.clearMealCache();
 
-        // Load meals
         async function loadMeals() {
             const user = auth.currentUser;
             if (!user) return;
-            
             const date = document.getElementById('dateFilter').value || getTodayDate();
             const tbody = document.getElementById('mealsList');
             tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
-            
             try {
-                const snap = await db.collection('meals')
-                    .where('userId', '==', user.uid)
-                    .where('date', '==', date)
-                    .get();
-                
-                if (snap.empty) {
-                    tbody.innerHTML = '<tr><td colspan="4">No meals</td></tr>';
-                    return;
-                }
-                
+                const snap = await db.collection('meals').where('userId', '==', user.uid).where('date', '==', date).get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="4">No meals</td></tr>'; return; }
                 tbody.innerHTML = '';
                 snap.forEach(doc => {
                     const m = doc.data();
@@ -153,59 +132,50 @@ if (window.clearMealCache) window.clearMealCache();
             } catch(e) { tbody.innerHTML = '<tr><td colspan="4">Error</td></tr>'; }
         }
 
-        // Load summary
         async function loadSummary() {
             const user = auth.currentUser;
             if (!user) return;
-            
             const today = getTodayDate();
             try {
                 const meals = await db.collection('meals').where('userId','==',user.uid).where('date','==',today).get();
                 let total = 0;
                 meals.forEach(d => total += d.data().calories);
-                
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 const goal = userDoc.exists ? userDoc.data().calorieGoal : 2000;
-                
                 document.getElementById('todayCalories').textContent = total;
                 document.getElementById('goalCalories').textContent = goal;
-                
                 const percent = Math.min((total/goal)*100, 100);
                 const fill = document.getElementById('progressFill');
                 fill.style.width = percent + '%';
                 fill.textContent = Math.round(percent) + '%';
-                
                 const remain = goal - total;
                 document.getElementById('remainingCalories').innerHTML = remain > 0 ? remain + ' calories left' : '⚠️ Exceeded by ' + Math.abs(remain);
             } catch(e) { console.error(e); }
         }
 
-        // Delete meal
         window.deleteMeal = async function(id) {
             if(confirm('Delete?')) {
                 await db.collection('meals').doc(id).delete();
+                if (window.clearMealCache) window.clearMealCache();
                 loadMeals();
                 loadSummary();
             }
         };
 
-        // Edit meal
         window.editMeal = async function(id, name, cal, type) {
             const newName = prompt('Food name:', name);
             if(newName) {
                 const newCal = prompt('Calories:', cal);
                 const newType = prompt('Type (breakfast/lunch/dinner/snack):', type);
                 await db.collection('meals').doc(id).update({
-                    foodName: newName,
-                    calories: parseInt(newCal),
-                    mealType: newType.toLowerCase()
+                    foodName: newName, calories: parseInt(newCal), mealType: newType.toLowerCase()
                 });
+                if (window.clearMealCache) window.clearMealCache();
                 loadMeals();
                 loadSummary();
             }
         };
 
-        // Load user name
         async function loadUser() {
             const user = auth.currentUser;
             if(!user) return;
@@ -214,14 +184,10 @@ if (window.clearMealCache) window.clearMealCache();
             document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
         }
 
-        // Logout
         window.logout = function() { auth.signOut(); window.location.href = 'login.html'; };
-
-        // Set date filter
         document.getElementById('dateFilter').value = getTodayDate();
         document.getElementById('dateFilter').addEventListener('change', () => loadMeals());
 
-        // Auth check
         auth.onAuthStateChanged(user => {
             if(user) { loadUser(); loadMeals(); loadSummary(); }
             else window.location.href = 'login.html';

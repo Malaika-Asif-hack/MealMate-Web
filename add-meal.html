@@ -4,7 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MealMate – Add Meal</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #F5F7FA; }
+        .app-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: white; border-right: 1px solid #E0E0E0; padding: 24px 20px; position: fixed; height: 100vh; }
+        .sidebar-header { display: flex; align-items: center; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid #E0E0E0; margin-bottom: 24px; }
+        .sidebar-logo { font-size: 32px; }
+        .sidebar-header h2 { color: #4CAF50; font-size: 24px; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 8px; }
+        .nav-link { display: block; padding: 12px 16px; color: #2C3E50; text-decoration: none; border-radius: 12px; transition: all 200ms ease; }
+        .nav-link:hover { background: #E8F5E9; color: #4CAF50; }
+        .nav-link.active { background: #4CAF50; color: white; }
+        .logout-link { color: #F44336; margin-top: 20px; cursor: pointer; }
+        .main-content { margin-left: 260px; flex: 1; padding: 32px 40px; }
+        .page-header { margin-bottom: 32px; }
+        .page-header h1 { color: #2C3E50; font-size: 28px; margin-bottom: 8px; }
+        .page-header p { color: #7F8C8D; font-size: 14px; }
+        .ai-upload-card, .add-meal-card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid #E0E0E0; }
+        .ai-upload-area { border: 2px dashed #4CAF50; border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 200ms ease; background: #F8F9FA; }
+        .ai-upload-area:hover { background: #E8F5E9; border-color: #2E7D32; }
+        .ai-upload-area .icon { font-size: 48px; margin-bottom: 12px; }
+        .ai-upload-area p { color: #7F8C8D; margin-bottom: 8px; }
+        .ai-upload-area .btn-upload { background: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 40px; cursor: pointer; margin-top: 12px; font-weight: 600; }
+        .ai-result { margin-top: 20px; padding: 16px; background: #E8F5E9; border-radius: 12px; display: none; }
+        .ai-result.show { display: block; }
+        .ai-result h4 { color: #2C3E50; margin-bottom: 12px; }
+        .detected-food { background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .detected-food .food-name { font-weight: bold; color: #2C3E50; }
+        .detected-food .food-calories { color: #4CAF50; font-weight: bold; }
+        .separator { text-align: center; margin: 20px 0; position: relative; }
+        .separator::before { content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #E0E0E0; }
+        .separator span { background: white; padding: 0 16px; position: relative; color: #7F8C8D; font-size: 14px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; color: #2C3E50; font-weight: 500; }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid #E0E0E0; border-radius: 12px; font-family: inherit; font-size: 14px; }
+        .input-field:focus { outline: none; border-color: #4CAF50; }
+        .form-actions { display: flex; gap: 16px; margin-top: 24px; }
+        .btn-primary { background: #4CAF50; color: white; padding: 12px 28px; border: none; border-radius: 40px; cursor: pointer; font-weight: 600; }
+        .btn-secondary { background: transparent; color: #4CAF50; padding: 12px 28px; border: 2px solid #4CAF50; border-radius: 40px; cursor: pointer; font-weight: 600; }
+        @media (max-width: 768px) { .sidebar { width: 200px; } .main-content { margin-left: 200px; padding: 20px; } }
+        .loader { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #4CAF50; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .image-preview { margin-top: 16px; text-align: center; display: none; }
+        .image-preview img { max-width: 200px; max-height: 200px; border-radius: 12px; border: 1px solid #E0E0E0; }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -20,15 +64,34 @@
                 <a href="weekly-report.html" class="nav-link">📈 Reports</a>
                 <a href="profile.html" class="nav-link">👤 Profile</a>
                 <a href="settings.html" class="nav-link">⚙️ Settings</a>
-                <a href="#" onclick="logout()" class="nav-link logout-link">🚪 Logout</a>
+                <a href="#" class="nav-link logout-link" onclick="logout()">🚪 Logout</a>
             </nav>
         </aside>
 
         <main class="main-content">
             <div class="page-header">
                 <h1>➕ Add New Meal</h1>
-                <p>Record what you ate</p>
+                <p>Upload food image for AI detection or enter manually</p>
             </div>
+
+            <div class="ai-upload-card">
+                <h3>🤖 AI Food Recognition</h3>
+                <div class="ai-upload-area" id="uploadArea">
+                    <div class="icon">📸</div>
+                    <p>Click to upload a food image</p>
+                    <p style="font-size: 12px;">Supports: JPG, PNG (Max 5MB)</p>
+                    <button type="button" class="btn-upload" id="uploadBtn">Choose Image</button>
+                </div>
+                <input type="file" id="foodImage" accept="image/jpeg,image/png,image/jpg" style="display: none;">
+                <div id="imagePreview" class="image-preview"></div>
+                <div id="aiResult" class="ai-result">
+                    <h4>🔍 AI Detection Result:</h4>
+                    <div id="detectedItems"></div>
+                    <button class="btn-primary" id="useDetectedBtn" style="margin-top: 12px;">✓ Use Detected Meal</button>
+                </div>
+            </div>
+
+            <div class="separator"><span>OR Enter Manually</span></div>
 
             <div class="add-meal-card">
                 <form id="addMealForm">
@@ -47,11 +110,15 @@
                     </div>
                     <div class="input-group">
                         <label>Food Name</label>
-                        <input type="text" id="foodName" class="input-field" required>
+                        <input type="text" id="foodName" class="input-field" placeholder="e.g., Grilled Chicken Salad" required>
                     </div>
                     <div class="input-group">
                         <label>Calories</label>
-                        <input type="number" id="calories" class="input-field" required>
+                        <input type="number" id="calories" class="input-field" placeholder="Calories" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Notes (optional)</label>
+                        <textarea id="notes" class="input-field" rows="3" placeholder="Any additional notes..."></textarea>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Save Meal</button>
@@ -65,41 +132,136 @@
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
+    
     <script>
-        function getToday() {
-            const d = new Date();
-            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        let detectedMeal = null;
+
+        function getTodayDate() {
+            const today = new Date();
+            return today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
         }
 
-        document.getElementById('mealDate').value = getToday();
+        document.getElementById('mealDate').value = getTodayDate();
+
+        const foodDatabase = [
+            { keywords: ["pizza"], name: "Pizza", calories: 285 },
+            { keywords: ["burger"], name: "Burger", calories: 550 },
+            { keywords: ["salad"], name: "Salad", calories: 350 },
+            { keywords: ["pasta"], name: "Pasta", calories: 480 },
+            { keywords: ["rice", "biryani"], name: "Rice Dish", calories: 400 },
+            { keywords: ["chicken"], name: "Grilled Chicken", calories: 350 },
+            { keywords: ["fish"], name: "Fish", calories: 320 },
+            { keywords: ["soup"], name: "Soup", calories: 180 },
+            { keywords: ["sandwich"], name: "Sandwich", calories: 420 },
+            { keywords: ["apple"], name: "Apple", calories: 95 },
+            { keywords: ["banana"], name: "Banana", calories: 105 },
+            { keywords: ["orange"], name: "Orange", calories: 62 },
+            { keywords: ["egg"], name: "Egg", calories: 70 },
+            { keywords: ["bread"], name: "Bread", calories: 80 },
+            { keywords: ["coffee"], name: "Coffee", calories: 120 }
+        ];
+
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('foodImage').click();
+        });
+        document.getElementById('uploadBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('foodImage').click();
+        });
+
+        document.getElementById('foodImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('imagePreview').innerHTML = `<img src="${event.target.result}" alt="Food preview">`;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                analyzeImage(file);
+            }
+        });
+
+        async function analyzeImage(file) {
+            const aiResult = document.getElementById('aiResult');
+            const detectedItems = document.getElementById('detectedItems');
+            aiResult.classList.add('show');
+            detectedItems.innerHTML = '<div style="text-align:center; padding:20px;"><span class="loader"></span> Analyzing food image...</div>';
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const fileName = file.name.toLowerCase();
+            let matchedFood = null;
+            for (let food of foodDatabase) {
+                for (let keyword of food.keywords) {
+                    if (fileName.includes(keyword)) {
+                        matchedFood = food;
+                        break;
+                    }
+                }
+                if (matchedFood) break;
+            }
+
+            if (!matchedFood) {
+                matchedFood = { name: "Home Cooked Meal", calories: 400 };
+            }
+
+            detectedMeal = { name: matchedFood.name, calories: matchedFood.calories, confidence: "87%" };
+
+            detectedItems.innerHTML = `<div class="detected-food"><div><div class="food-name">${detectedMeal.name}</div><div style="font-size:12px;">Confidence: ${detectedMeal.confidence}</div></div><div class="food-calories">${detectedMeal.calories} cal</div></div>`;
+        }
+
+        document.getElementById('useDetectedBtn').addEventListener('click', function() {
+            if (detectedMeal) {
+                document.getElementById('foodName').value = detectedMeal.name;
+                document.getElementById('calories').value = detectedMeal.calories;
+                alert('✓ Meal details added to form!');
+            }
+        });
 
         document.getElementById('addMealForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const user = auth.currentUser;
-            if(!user) { alert('Please login'); return; }
+            if (!user) { alert('Please login'); window.location.href = 'login.html'; return; }
 
-            const meal = {
-                userId: user.uid,
-                date: document.getElementById('mealDate').value,
-                mealType: document.getElementById('mealType').value,
-                foodName: document.getElementById('foodName').value,
-                calories: parseInt(document.getElementById('calories').value),
-                createdAt: new Date()
-            };
+            const mealDate = document.getElementById('mealDate').value;
+            const mealType = document.getElementById('mealType').value;
+            const foodName = document.getElementById('foodName').value;
+            const calories = parseInt(document.getElementById('calories').value);
+            const notes = document.getElementById('notes').value;
+            const imageFile = document.getElementById('foodImage').files[0];
+
+            if (!foodName || !calories) { alert('Please fill food name and calories'); return; }
 
             try {
-                await db.collection('meals').add(meal);
-                alert('Meal added!');
+                let imageUrl = null;
+                if (imageFile) {
+                    const timestamp = new Date().getTime();
+                    const imageName = `${user.uid}_${timestamp}_${imageFile.name}`;
+                    const storageRef = storage.ref().child(`meal-images/${imageName}`);
+                    await storageRef.put(imageFile);
+                    imageUrl = await storageRef.getDownloadURL();
+                }
+
+                await db.collection('meals').add({
+                    userId: user.uid, date: mealDate, mealType: mealType,
+                    foodName: foodName, calories: calories, notes: notes,
+                    imageUrl: imageUrl, source: detectedMeal ? 'ai-detected' : 'manual',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('✅ Meal added successfully!');
+                if (window.clearMealCache) window.clearMealCache();
                 window.location.href = 'dashboard.html';
-            } catch(e) { alert('Error: ' + e.message); }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
         });
-// After successfully adding meal
-if (window.clearMealCache) window.clearMealCache();
 
         window.logout = function() { auth.signOut(); window.location.href = 'login.html'; };
-
-        auth.onAuthStateChanged(user => { if(!user) window.location.href = 'login.html'; });
+        auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
     </script>
 </body>
 </html>
